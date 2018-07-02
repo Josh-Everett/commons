@@ -14,7 +14,7 @@ from tendrl.commons.objects.cluster.atoms.import_cluster import ImportCluster
 
 class MockClusterObject(object):
     def __init__(self, integration_id = 1):
-        self.short_name = "test"
+        self.short_name = "9"
 
     def load(self):
         return self
@@ -41,7 +41,7 @@ class MockCompiledDefinitions(object):
         pass
     def get_parsed_defs(self):
         mock_return = maps.NamedDict()
-        nested_return = maps.NamedDict(min_reqd_gluster_ver = "test1.test2.test3")
+        nested_return = maps.NamedDict(min_reqd_gluster_ver = "1.2.3")
         mock_return["namespace.tendrl"] = nested_return
         return mock_return
 
@@ -70,15 +70,21 @@ def test_import_cluster(patch_acquire_node_lock, patch_release_node_lock, mock_s
 
     test = ImportCluster()
     test.parameters = maps.NamedDict()
-    attrs = {'communicate.return_value': ('glusterfs-server-test.dev.more\n test.test\n test', '')}
+    attrs = {'communicate.return_value': ('glusterfs-server-test.dev.more\n 1.2\n 1', '')}
     process_mock.configure_mock(**attrs)
     mock_subproc_popen.return_value = process_mock
 
+    #tendrlNS = test_init()
+    #NS["compiled_definitions"] = tendrlNS.current_ns.definitions
+
     NS.compiled_definitions = MockCompiledDefinitions()
     #NS.compiled_definitions = mock.MagicMock()
+
+
     test.parameters["TendrlContext.integration_id"] = '94ac63ba-de73-4e7f-8dfa-9010d9554084'
     test.parameters['Node[]'] = [0,1]
     test.parameters['job_id'] = [20]
     test.parameters['flow_id'] = 1
     test.run()
-    test_init()
+    NS.compiled_definitions = None
+    #test_init()
