@@ -2,19 +2,18 @@ import __builtin__
 import maps
 from mock import patch
 import mock
-import subprocess
+
 import uuid
 import pytest
-from tendrl.commons import TendrlNS
 
 from tendrl.commons.utils import ansible_module_runner
 
 from tendrl.commons.flows import utils
-from tendrl.commons.utils import etcd_utils
-from tendrl.commons.tests import test_init
 
+from tendrl.commons.flows.import_cluster import gluster_help
 
 from tendrl.commons.objects.cluster.atoms.import_cluster import ImportCluster
+
 
 class MockClusterObject(object):
 
@@ -24,6 +23,7 @@ class MockClusterObject(object):
     def load(self):
         return self
 
+
 class MockTendrlContext(object):
 
     def __init__(self, sds_version=1):
@@ -32,6 +32,7 @@ class MockTendrlContext(object):
 
     def load(self):
         return self
+
 
 class MockJob(object):
 
@@ -63,7 +64,8 @@ def get_good_parsed_defs():
 @mock.patch('subprocess.Popen')
 @patch.object(utils, 'release_node_lock')
 @patch.object(utils, 'acquire_node_lock')
-def test_import_cluster(patch_acquire_node_lock, patch_release_node_lock, mock_subproc_popen):
+@patch.object(gluster_help, 'import_gluster')
+def test_import_cluster(patch_import_gluster, patch_acquire_node_lock, patch_release_node_lock, mock_subproc_popen):
 
     setattr(__builtin__, "NS", maps.NamedDict())
     NS.publisher_id = 1
@@ -81,28 +83,35 @@ def test_import_cluster(patch_acquire_node_lock, patch_release_node_lock, mock_s
     NS.tendrl_context = MockTendrlContext()
     NS.tendrl.objects.Job = MockJob
 
-    process_mock = mock.Mock()
 
     test = ImportCluster()
     test.parameters = maps.NamedDict()
-    attrs = {'communicate.return_value': ('glusterfs-server-1.2.3\n 1.2\n 1', '')}
-    process_mock.configure_mock(**attrs)
+
+    process_mock = mock.Mock()
+    Popen_attrs = {'communicate.return_value': ('glusterfs-server-1.2.3', '')}
+    process_mock.configure_mock(**Popen_attrs)
     mock_subproc_popen.return_value = process_mock
 
     test.parameters["TendrlContext.integration_id"] = '94ac63ba-de73-4e7f-8dfa-9010d9554084'
-    test.parameters['Node[]'] = [0,1]
-    test.parameters['job_id'] = [20]
-    test.parameters['flow_id'] = 1
+    test.parameters['Node[]'] = ['test_node_0', 'test_node_1']
+    test.parameters['job_id'] = 'test_id'
+    test.parameters['flow_id'] = 'test_flow_id'
 
     NS.compiled_definitions = mock.MagicMock()
 
-    # fail
+    patch_import_gluster.return_value = (True, '')
+
+    # gluster version incompatible
     with patch.object(NS.compiled_definitions, 'get_parsed_defs', get_bad_parsed_defs):
         with pytest.raises(Exception):
             test.run()
+
     # succeed
     with patch.object(NS.compiled_definitions, 'get_parsed_defs', get_good_parsed_defs):
         with patch.object(ansible_module_runner.AnsibleRunner, 'run',
                           return_value=({"rc": 1, "msg": None}, None)):
             with pytest.raises(Exception):
                 test.run()
+
+#with patch.object(gluster_help, 'import_gluster',
+#                              return_value=(True, True)):
