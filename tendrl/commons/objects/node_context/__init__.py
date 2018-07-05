@@ -137,6 +137,8 @@ class NodeContext(objects.BaseObject):
                 # Update cluster details
                 self.update_cluster_details(_tc.integration_id)
                 _tag = "provisioner/%s" % _tc.integration_id
+                #import pdb;
+                #pdb.set_trace()
                 if _tag in self.tags:
                     _index_key = "/indexes/tags/%s" % _tag
                     self.tags.remove(_tag)
@@ -245,6 +247,8 @@ class NodeContext(objects.BaseObject):
                     fqdn=node.key.split("/")[-1]
                 ).load_all()
                 for brick in bricks:
+                    #import pdb;
+                    #pdb.set_trace()
                     if brick.status.lower() != "stopped":
                         brick.status = "Stopped"
                         brick.save()
