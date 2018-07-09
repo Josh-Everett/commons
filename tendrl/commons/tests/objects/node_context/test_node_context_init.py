@@ -7,18 +7,11 @@ import os
 import socket
 import tempfile
 
-
-from tendrl.commons.objects.cluster import Cluster
-import tendrl.commons.objects.tendrl_context as tendrl_context
-import tendrl.commons.objects.cluster_node_context as cluster_node_context
-
-from tendrl.commons.objects.gluster_brick import GlusterBrick
-
-
 from tendrl.commons.utils import event_utils
 
 
 from tendrl.commons.objects import BaseObject
+from tendrl.commons.objects.cluster import Cluster
 from tendrl.commons.objects.node_context import NodeContext
 from tendrl.commons.utils import etcd_utils
 
@@ -94,6 +87,18 @@ class MockJob(object):
 
     def save(self):
         return self
+
+
+class MockGlusterVolume(object):
+    def __init__(self, integration_id="test_integration"):
+        self.state = "up"
+        self.status = "up"
+        self.name = "test_vol"
+        pass
+    def load_all(self):
+        return [self]
+    def save(self):
+        pass
 
 
 def read(*args):
@@ -485,6 +490,7 @@ def test_update_cluster_details(patch_get_node_id,
     NS.node_context = maps.NamedDict()
     NS.node_context.node_id = 1
     NS.node_context.tags = ["tendrl/monitor"]
+    NS.node_context.fqdn = "test_fqdn"
     patch_get_node_id.return_value = 1
     patch_client.return_value = etcd.Client()
     setattr(NS, "_int", maps.NamedDict())
@@ -523,6 +529,8 @@ def test_update_cluster_details(patch_get_node_id,
     NS.tendrl.objects.Cluster = Cluster
 
     NS.tendrl.objects.GlusterBrick = MockGlusterBrick
+
+    NS.tendrl.objects.GlusterVolume = MockGlusterVolume
 
     with patch.object(etcd.Client, "read", return_value=etcd.Client()):
         node_context = NodeContext()
